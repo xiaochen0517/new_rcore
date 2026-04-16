@@ -5,7 +5,6 @@ use core::alloc::{GlobalAlloc, Layout};
 use core::mem::size_of;
 use core::ptr::null_mut;
 
-static mut HEAP: [u8; 1024 * 1024] = [0; 1024 * 1024]; // 1 MiB 堆空间
 static mut HEAP_INITIALIZED: bool = false;
 static mut HEAP_START: usize = 0x0;
 static mut HEAP_PTR: usize = 0x0;
@@ -60,6 +59,40 @@ pub extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     dest
 }
 
+#[unsafe(no_mangle)]
+pub extern "C" fn memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
+    unsafe {
+        for i in 0..n {
+            let byte1 = *s1.add(i);
+            let byte2 = *s2.add(i);
+            if byte1 != byte2 {
+                return byte1 as i32 - byte2 as i32;
+            }
+        }
+    }
+    0
+}
+
+pub fn sys_mmap(length: usize) -> *mut u8 {
+    let result: usize;
+    unsafe {
+        core::arch::asm!(
+            "syscall",
+            in("rax") 9usize,       // sys_mmap
+            in("rdi") 0usize,       // addr = NULL，由内核选择地址
+            in("rsi") length,       // 申请大小（需页对齐，4096 的倍数）
+            in("rdx") 0x3usize,     // PROT_READ | PROT_WRITE
+            in("r10") 0x22usize,    // MAP_PRIVATE | MAP_ANONYMOUS
+            in("r8")  usize::MAX,   // fd = -1（匿名映射）
+            in("r9")  0usize,       // offset = 0
+            lateout("rax") result,
+            lateout("rcx") _,
+            lateout("r11") _,
+        );
+    }
+    result as *mut u8 // 失败时返回 MAP_FAILED = -1usize as *mut u8
+}
+
 /**
  * 将地址向上对齐到指定的对齐值
  */
@@ -77,7 +110,12 @@ fn size_of_with_header<T>() -> usize {
 fn heap_init() {
     unsafe {
         if !HEAP_INITIALIZED {
-            HEAP_START = (&raw const HEAP) as *const u8 as usize;
+            let ptr = sys_mmap(HEAP_SIZE);
+            // MAP_FAILED = 0xFFFFFFFFFFFFFFFF
+            if ptr as usize > usize::MAX - 4096 {
+                loop {} // 分配失败，panic
+            }
+            HEAP_START = ptr as usize;
             HEAP_PTR = HEAP_START;
             HEAP_INITIALIZED = true;
         }
