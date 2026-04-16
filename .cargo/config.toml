@@ -1,2 +1,17 @@
 [build]
-rustflags = ["-C", "link-arg=-nostartfiles", "-C", "target-feature=+crt-static"]
+rustflags = [
+    "-C",
+    "link-arg=-nostartfiles",
+    "-C",
+    "relocation-model=static",
+    "-C",
+    "panic=abort",
+]
+
+[profile.dev]
+panic = "abort"
+opt-level = 0
+
+[profile.release]
+panic = "abort"
+opt-level = 3
