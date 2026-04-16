@@ -1,21 +1,26 @@
 #![no_std]
 #![no_main]
 
-mod allocator;
+#[global_allocator]
+static GLOBAL_ALLOCATOR: SimpleAllocator = SimpleAllocator::new();
 
 extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use new_rcore::allocator::SimpleAllocator;
+use new_rcore::{sys_exit, sys_write};
 
-use allocator::SimpleAllocator;
 use core::panic::PanicInfo;
 
-#[global_allocator]
-static GLOBAL_ALLOCATOR: SimpleAllocator = SimpleAllocator;
+#[unsafe(no_mangle)]
+pub static __rust_no_alloc_shim_is_unstable_v2: u8 = 0;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
+    let msg = b"Hello, RCore!\n";
+    sys_write(1, msg.as_ptr(), msg.len());
+
     // 测试 1: 基本分配和释放
     let boxed = Box::new(42u32);
     let value = *boxed;
@@ -42,24 +47,13 @@ pub extern "C" fn _start() -> ! {
             in("rdi") 1usize,
             in("rsi") msg.as_ptr(),
             in("rdx") msg.len(),
+            lateout("rax") _,
+            lateout("rcx") _, // syscall 会破坏 rcx
+            lateout("r11") _, // syscall 会破坏 r11
         );
     }
 
-    let msg = b"Hello, RCore!\n";
-    unsafe {
-        core::arch::asm!(
-            "syscall",
-            in("rax") 1usize, // sys_write
-            in("rdi") 1usize, // stdout
-            in("rsi") msg.as_ptr(),
-            in("rdx") msg.len(),
-        );
-        core::arch::asm!(
-            "syscall",
-            in("rax") 60usize, // sys_exit
-            in("rdi") 0usize, // exit code
-        );
-    }
+    sys_exit(0);
     loop {}
 }
 

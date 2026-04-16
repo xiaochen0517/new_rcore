@@ -5,5 +5,11 @@ edition = "2024"
 
 [dependencies]
 
+[lib]
+crate-type = ["rlib"]
+
 [profile.dev]
+panic = "abort"
+
+[profile.release]
 panic = "abort"

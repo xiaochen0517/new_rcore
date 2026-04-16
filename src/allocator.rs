@@ -5,10 +5,20 @@ use core::alloc::{GlobalAlloc, Layout};
 use core::mem::size_of;
 use core::ptr::null_mut;
 
-static mut HEAP_START: usize = 0x100000;
-static mut HEAP_PTR: usize = 0x100000;
+static mut HEAP: [u8; 1024 * 1024] = [0; 1024 * 1024]; // 1 MiB 堆空间
+static mut HEAP_INITIALIZED: bool = false;
+static mut HEAP_START: usize = 0x0;
+static mut HEAP_PTR: usize = 0x0;
 static HEAP_SIZE: usize = 1024 * 1024; // 1 MiB
 
+// #[unsafe(no_mangle)]
+// pub extern "C" fn rust_eh_personality() {}
+
+#[cfg(target_arch = "x86_64")]
+#[unsafe(no_mangle)]
+pub extern "C" fn rust_eh_personality() {}
+
+#[cfg(target_arch = "arm")]
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_eh_personality() {}
 
@@ -64,26 +74,37 @@ fn size_of_with_header<T>() -> usize {
     size_of::<BlockHeader>() + size_of::<T>()
 }
 
+fn heap_init() {
+    unsafe {
+        if !HEAP_INITIALIZED {
+            HEAP_START = (&raw const HEAP) as *const u8 as usize;
+            HEAP_PTR = HEAP_START;
+            HEAP_INITIALIZED = true;
+        }
+    }
+}
+
 /**
  * 从堆中分配内存，返回指向块头的指针
  */
 unsafe fn alloc_from_heap(size: usize, align: usize) -> *mut BlockHeader {
-    // 对其堆指针以满足对齐要求
-    HEAP_PTR = align_up(HEAP_PTR, align);
-    // 获取到块头和用户数据的总大小
-    let total_size = size_of_with_header::<()>() + size;
+    heap_init();
+    let header_size = size_of::<BlockHeader>();
+    // 确保 user_ptr 对齐数至少为 align_of::<BlockHeader>()，从而保证 block_ptr 满足 BlockHeader 对齐要求
+    let effective_align = align.max(core::mem::align_of::<BlockHeader>());
+    // 用户数据地址需要对齐，所以先对 (HEAP_PTR + header_size) 向上对齐
+    let user_ptr = align_up(HEAP_PTR + header_size, effective_align);
+    let block_ptr = user_ptr - header_size; // BlockHeader 紧在用户数据之前
+    let total_size = user_ptr - HEAP_PTR + size;
     // 检查是否有足够的堆空间
-    if HEAP_PTR + total_size > HEAP_START + HEAP_SIZE {
-        return null_mut(); // 堆空间不足
+    if user_ptr + size > HEAP_START + HEAP_SIZE {
+        return null_mut();
     }
-    // 初始化块头信息
-    let block_ptr = HEAP_PTR as *mut BlockHeader;
-    (*block_ptr).size = size;
-    (*block_ptr).in_use = true;
-    // 更新堆指针
-    HEAP_PTR += total_size;
-    // 返回指向块头指针
-    block_ptr
+    let block_header = block_ptr as *mut BlockHeader;
+    (*block_header).size = size;
+    (*block_header).in_use = true;
+    HEAP_PTR = user_ptr + size;
+    block_header
 }
 
 #[repr(C)]
@@ -94,7 +115,8 @@ struct BlockHeader {
 
 impl BlockHeader {
     unsafe fn from_user_ptr(ptr: *mut u8) -> *mut BlockHeader {
-        (ptr as *mut BlockHeader).offset(-1)
+        // 先在字节级减去 header 大小，再转换指针类型，避免不对齐指针上做 offset 运算
+        ptr.sub(size_of::<BlockHeader>()) as *mut BlockHeader
     }
 
     unsafe fn user_ptr(&self) -> *mut u8 {
@@ -163,6 +185,12 @@ static mut FREE_LIST: FreeList = FreeList {
 };
 
 pub struct SimpleAllocator;
+
+impl SimpleAllocator {
+    pub const fn new() -> Self {
+        SimpleAllocator
+    }
+}
 
 unsafe impl GlobalAlloc for SimpleAllocator {
     /**
