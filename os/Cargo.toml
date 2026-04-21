@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 log = "0.4"
+user_lib = { path = "../user" }
 
 [profile.release]
 debug = true
