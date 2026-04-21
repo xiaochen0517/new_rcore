@@ -1,2 +1,3 @@
-/target
+target
 rustc-ice-*
+.vscode-ctags
