@@ -1,3 +1,4 @@
+#![deny(warnings)]
 #![no_std]
 #![no_main]
 // #![feature(panic_info_message)]
@@ -16,9 +17,9 @@ mod board;
 
 global_asm!(include_str!("entry.asm"));
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub fn rust_main() -> ! {
-    extern "C" {
+    unsafe extern "C" {
         fn stext(); // begin addr of text segment
         fn etext(); // end addr of text segment
         fn srodata(); // start addr of Read-Only data segment
@@ -35,8 +36,7 @@ pub fn rust_main() -> ! {
     println!("[kernel] Hello, world!");
     trace!(
         "[kernel] .text [{:#x}, {:#x})",
-        stext as *const () as usize,
-        etext as *const () as usize
+        stext as *const () as usize, etext as *const () as usize
     );
     debug!(
         "[kernel] .rodata [{:#x}, {:#x})",
@@ -60,7 +60,7 @@ pub fn rust_main() -> ! {
 }
 
 fn clear_bss() {
-    extern "C" {
+    unsafe extern "C" {
         fn sbss();
         fn ebss();
     }
