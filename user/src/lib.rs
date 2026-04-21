@@ -1,12 +1,17 @@
 #![no_std]
-#![no_main]
+// #![no_main]
 #![feature(linkage)]
+
+#[macro_use]
+pub mod console;
+mod lang_items;
+mod syscall;
 
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
 pub extern "C" fn _start() -> ! {
     clear_bss();
-    // exit(main());
+    exit(main());
     panic!("Should never reach here!");
 }
 
@@ -18,9 +23,19 @@ pub extern "C" fn main() -> i32 {
 
 fn clear_bss() {
     unsafe extern "C" {
-        fn sbss();
-        fn ebss();
+        fn start_bss();
+        fn end_bss();
     }
-    (sbss as *const () as usize..ebss as *const () as usize)
+    (start_bss as *const () as usize..end_bss as *const () as usize)
         .for_each(|a| unsafe { (a as *mut u8).write_volatile(0) });
+}
+
+use syscall::*;
+
+pub fn write(fd: usize, buf: &[u8]) -> isize {
+    sys_write(fd, buf)
+}
+
+pub fn exit(code: i32) -> isize {
+    sys_exit(code)
 }

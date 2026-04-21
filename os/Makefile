@@ -19,6 +19,7 @@ etest:
 	@echo "bootloader: $(BOOTLOADER)"
 
 build:
+	@cd ../user && make build
 	@cargo build --target $(TARGET) --$(MODE)
 
 
@@ -55,7 +56,7 @@ debug-run: build $(KERNEL_BIN)
 		-s -S
 
 debug:
-	@gdb \
+	@gdb-multiarch \
 		-ex "file $(KERNEL_ELF)" \
 		-ex "set arch riscv:rv64" \
 		-ex "target remote localhost:1234"

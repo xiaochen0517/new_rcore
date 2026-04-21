@@ -9,3 +9,6 @@ user_lib = { path = "../user" }
 
 [profile.release]
 debug = true
+opt-level = 0
+strip = false
+split-debuginfo = "packed"
