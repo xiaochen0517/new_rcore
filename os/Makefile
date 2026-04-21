@@ -1,6 +1,7 @@
 TARGET := riscv64gc-unknown-none-elf
 MODE := release
-KERNEL_ELF := target/$(TARGET)/$(MODE)/new_rcore
+ELF_NAME := os
+KERNEL_ELF := target/$(TARGET)/$(MODE)/$(ELF_NAME)
 KERNEL_BIN := $(KERNEL_ELF).bin
 
 # BOARD
