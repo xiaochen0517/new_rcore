@@ -1,0 +1,7 @@
+
+    .section .data
+    .global app_{{APP_INDEX}}_start
+    .global app_{{APP_INDEX}}_end
+app_{{APP_INDEX}}_start:
+    .incbin "{{APP_BIN_PATH}}"
+app_{{APP_INDEX}}_end:

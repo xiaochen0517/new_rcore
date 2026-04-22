@@ -1,0 +1,9 @@
+
+    .align 3
+    .section .data
+    .global _num_app
+_num_app:
+    .quad {{APP_COUNT}}
+{{APP_ADDRESS_ENTRIES}}
+
+{{APP_DATA_ENTRIES}}

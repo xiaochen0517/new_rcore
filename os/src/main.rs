@@ -1,7 +1,6 @@
 #![deny(warnings)]
 #![no_std]
 #![no_main]
-// #![feature(panic_info_message)]
 
 use core::arch::global_asm;
 use log::*;
@@ -16,6 +15,7 @@ mod sbi;
 mod board;
 
 global_asm!(include_str!("entry.asm"));
+global_asm!(include_str!("app_linker.S"));
 
 #[unsafe(no_mangle)]
 pub fn rust_main() -> ! {
@@ -54,6 +54,19 @@ pub fn rust_main() -> ! {
         "[kernel] .bss [{:#x}, {:#x})",
         sbss as *const () as usize, ebss as *const () as usize
     );
+
+    unsafe extern "C" {
+        fn _num_app();
+        fn app_0_start();
+    }
+    unsafe {
+        let num_app_ptr = _num_app as *const usize;
+        let num_app = num_app_ptr.read_volatile();
+        println!("[kernel] Found {} app(s)", num_app);
+        let app_0_start_ptr = app_0_start as *const usize;
+        let app_0_start_ptr = app_0_start_ptr.read_volatile();
+        println!("[kernel] App 0 entry point: {:#x}", app_0_start_ptr);
+    }
 
     use crate::board::QEMUExit;
     crate::board::QEMU_EXIT_HANDLE.exit_success()
