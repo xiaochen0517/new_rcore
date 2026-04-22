@@ -7,8 +7,10 @@ edition = "2024"
 riscv = { git = "https://gitee.com/rcore-os/riscv", features = ["inline-asm"] }
 
 [profile.release]
-opt-level = 0
 debug = true
+opt-level = 0
+strip = false
+split-debuginfo = "packed"
 
 [features]
 test = []

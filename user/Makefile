@@ -15,6 +15,9 @@ etest:
 	@echo "ELFS: $(FLFS)"
 	@echo "BINS: $(BINS)"
 
+clean:
+	@cargo clean
+
 elf:
 	@cargo build --target $(TARGET) --$(MODE)
 
@@ -23,4 +26,4 @@ binary: elf
 
 build: binary
 
-.PHONY: elf binary build
+.PHONY: clean elf binary build

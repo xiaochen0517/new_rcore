@@ -38,6 +38,7 @@ $(KERNEL_BIN): build
 	@$(OBJCOPY) --strip-all $(KERNEL_ELF) -O binary $@
 
 clean:
+	@cd ../user && make clean
 	@cargo clean
 
 run: build $(KERNEL_BIN)
@@ -61,5 +62,6 @@ debug:
 		-ex "file $(KERNEL_ELF)" \
 		-ex "set arch riscv:rv64" \
 		-ex "target remote localhost:1234"
+		-ex "add-symbol-file ../user/target/riscv64gc-unknown-none-elf/release/00hello_world 0x80400000"
 
 .PHONY: etest build clean run debug-run debug

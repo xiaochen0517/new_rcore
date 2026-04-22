@@ -29,6 +29,14 @@
           "text": "target remote :1234",
           "ignoreFailures": true
         },
+        // 可以使用以下配置追加用户程序中的符号用于调试特定应用
+        // 但是由于所有的程序在批处理操作系统中都是要加载到 0x80400000 地址，所以断点会影响到所有在此内存空间中依次执行的程序
+        // 所以在添加断点时需要确保当前加载执行的程序是你想要调试的程序
+        // {
+        //   "description": "Add user app symbol file",
+        //   "text": "add-symbol-file ${workspaceFolder}/user/target/riscv64gc-unknown-none-elf/release/00hello_world 0x80400000",
+        //   "ignoreFailures": true
+        // },
         {
           "description": "Enable pretty-printing for gdb",
           "text": "-enable-pretty-printing",
