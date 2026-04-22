@@ -48,6 +48,7 @@ run: build $(KERNEL_BIN)
 		-device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA)
 
 debug-run: build $(KERNEL_BIN)
+	@echo "Starting QEMU in debug mode..."
 	@qemu-system-riscv64 \
 		-machine virt \
 		-nographic \

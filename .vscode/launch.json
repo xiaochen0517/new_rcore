@@ -4,22 +4,37 @@
   // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+    // gdb-mutilarch 调试内核
     {
-      "name": "Debug executable 'new_rcore'",
-      "type": "lldb",
+      "name": "Debug Kernel with gdb-multiarch",
+      "type": "cppdbg",
       "request": "launch",
-      "cargo": {
-        "args": ["run", "--bin=new_rcore"]
-      },
-      "args": []
-    },
-    {
-      "type": "cmake",
-      "request": "launch",
-      "name": "Debug portfile(s)",
-      "cmakeDebugType": "external",
-      "pipeName": "/tmp/vcpkg_ext_portfile_dbg",
-      "preLaunchTask": "Debug vcpkg commands"
+      "program": "${workspaceFolder}/os/target/riscv64gc-unknown-none-elf/release/os",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb-multiarch",
+      "preLaunchTask": "Wait Before Debug",
+      "setupCommands": [
+        {
+          "description": "Set RISC-V architecture",
+          "text": "set architecture riscv:rv64",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set remote target",
+          "text": "target remote :1234",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
     }
   ]
 }
