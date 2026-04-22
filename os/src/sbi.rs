@@ -24,6 +24,10 @@ pub fn console_putchar(c: usize) {
 
 use crate::board::QEMUExit;
 
-pub fn shutdown() -> ! {
-    crate::board::QEMU_EXIT_HANDLE.exit_failure()
+pub fn shutdown(success: bool) -> ! {
+    if success {
+        crate::board::QEMU_EXIT_HANDLE.exit_success()
+    } else {
+        crate::board::QEMU_EXIT_HANDLE.exit_failure()
+    }
 }

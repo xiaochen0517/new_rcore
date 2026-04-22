@@ -19,5 +19,5 @@ fn panic(info: &PanicInfo) -> ! {
             info.message().as_str().unwrap_or("No message")
         );
     }
-    shutdown()
+    shutdown(false)
 }

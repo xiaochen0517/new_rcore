@@ -1,4 +1,3 @@
-#![deny(warnings)]
 #![no_std]
 #![no_main]
 
@@ -7,9 +6,13 @@ use log::*;
 
 #[macro_use]
 mod console;
+mod batch;
 mod lang_items;
 mod logging;
 mod sbi;
+mod sync;
+mod syscall;
+mod trap;
 
 #[path = "boards/qemu.rs"]
 mod board;
@@ -33,40 +36,12 @@ pub fn rust_main() -> ! {
     }
     clear_bss();
     logging::init();
-    println!("[kernel] Hello, world!");
-    trace!(
-        "[kernel] .text [{:#x}, {:#x})",
-        stext as *const () as usize, etext as *const () as usize
-    );
-    debug!(
-        "[kernel] .rodata [{:#x}, {:#x})",
-        srodata as *const () as usize, erodata as *const () as usize
-    );
-    info!(
-        "[kernel] .data [{:#x}, {:#x})",
-        sdata as *const () as usize, edata as *const () as usize
-    );
-    warn!(
-        "[kernel] boot_stack top=bottom={:#x}, lower_bound={:#x}",
-        boot_stack_top as *const () as usize, boot_stack_lower_bound as *const () as usize
-    );
-    error!(
-        "[kernel] .bss [{:#x}, {:#x})",
-        sbss as *const () as usize, ebss as *const () as usize
-    );
-
-    unsafe extern "C" {
-        fn _num_app();
-        fn app_0_start();
-    }
-    unsafe {
-        let num_app_ptr = _num_app as *const usize;
-        let num_app = num_app_ptr.read_volatile();
-        println!("[kernel] Found {} app(s)", num_app);
-        let app_0_start_ptr = app_0_start as *const usize;
-        let app_0_start_ptr = app_0_start_ptr.read_volatile();
-        println!("[kernel] App 0 entry point: {:#x}", app_0_start_ptr);
-    }
+    info!("[main] rCore is booting...");
+    trap::init();
+    info!("[main] Trap handler initialized.");
+    batch::init();
+    info!("[main] Batch kernel initialization complete.");
+    batch::run_next_app();
 
     use crate::board::QEMUExit;
     crate::board::QEMU_EXIT_HANDLE.exit_success()
